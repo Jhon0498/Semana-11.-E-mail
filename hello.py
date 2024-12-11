@@ -43,10 +43,29 @@ class User(db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
+# Função para inicializar os roles
+def init_roles():
+    # Verificar se os roles já existem, caso contrário, inseri-los
+    if Role.query.filter_by(name='Administrator').first() is None:
+        admin_role = Role(name='Administrator')
+        db.session.add(admin_role)
+    if Role.query.filter_by(name='Moderator').first() is None:
+        mod_role = Role(name='Moderator')
+        db.session.add(mod_role)
+    if Role.query.filter_by(name='User').first() is None:
+        user_role = Role(name='User')
+        db.session.add(user_role)
+
+    db.session.commit()  # Confirma as alterações no banco de dados
+
+# Chamada para inicializar os roles no contexto do app
+with app.app_context():
+    init_roles()
+
 # Formulário de usuário
 class NameForm(FlaskForm):
     name = StringField('What is your name?', validators=[DataRequired()])
-    role = SelectField('Role?:', coerce=int, choices=[])  # Campo para escolher o role
+    role = SelectField('Role?:', coerce=int)
     submit = SubmitField('Submit')
 
 # Rota para o formulário e cadastro de usuário
@@ -57,7 +76,12 @@ def hello_world():
     # Carregar as opções de role para o SelectField
     form.role.choices = [(role.id, role.name) for role in Role.query.all()]
 
+     # Obter dados do banco de dados
     all_user = User.query.all()
+    cont_user =  len(all_user) # para contar usuários
+    all_role_user = Role.query.all()
+    cont_role = len(all_role_user) #contar role
+
 
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.name.data).first()
@@ -74,7 +98,14 @@ def hello_world():
         session['name'] = form.name.data
         return redirect(url_for('hello_world'))
 
-    return render_template('formulario.html', form=form, name=session.get('name'), pessoa=all_user)
+    return render_template('formulario.html',
+    form=form,
+    name=session.get('name'),
+    pessoa=all_user,
+    count_user = cont_user,
+    count_role = cont_role,
+    all_role_user= all_role_user)
+
 
 # Rota para exibir detalhes do usuário
 @app.route('/user/<name>')
